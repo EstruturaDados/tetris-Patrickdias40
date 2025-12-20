@@ -1,25 +1,63 @@
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
-// Desafio Tetris Stack
-// Tema 3 - Integração de Fila e Pilha
-// Este código inicial serve como base para o desenvolvimento do sistema de controle de peças.
-// Use as instruções de cada nível para desenvolver o desafio.
+#define stng 30
+#define MAX 5
+
+typedef struct {
+    char peca[stng];
+    int id;
+}Peca;
+
+typedef struct {
+    Peca itens[MAX];
+    int inicio;
+    int fim;
+    int total;
+}filaTetris;
+
+int filaCheia(filaTetris *f) {
+    return  f->total == MAX;
+}
+int filaVazia(filaTetris *f) {
+    return  f->total == 0;
+}
+
+void limpar() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+void removeEnter(char *str) {
+    str[strcspn(str, "\n")] = '\0';
+}
+
+void menu(filaTetris *f, int opcao);
+void inicializaFila(filaTetris *f);
+void inserePeca(filaTetris *f, Peca p);
+void removePeca(filaTetris *f, Peca *p);
+void visualizar(filaTetris *f);
+void gerarPecas(filaTetris *f);
+
 
 int main() {
+    int opcao;
+    filaTetris f;
+    inicializaFila(&f);
 
-    // 🧩 Nível Novato: Fila de Peças Futuras
-    //
-    // - Crie uma struct Peca com os campos: tipo (char) e id (int).
-    // - Implemente uma fila circular com capacidade para 5 peças.
-    // - Crie funções como inicializarFila(), enqueue(), dequeue(), filaCheia(), filaVazia().
-    // - Cada peça deve ser gerada automaticamente com um tipo aleatório e id sequencial.
-    // - Exiba a fila após cada ação com uma função mostrarFila().
-    // - Use um menu com opções como:
-    //      1 - Jogar peça (remover da frente)
-    //      0 - Sair
-    // - A cada remoção, insira uma nova peça ao final da fila.
+    do {
+        printf("\n=== MENU ===\n");
+        printf("1 para gerar as pecas\n");
+        printf("2 para alterar uma peca:\n");
+        printf("3 para Visualizar as pecas:\n");
+        printf("4 para fechar o programa:\n");
 
+        printf("\nEscolha:");
+        scanf("%d", &opcao);
+        limpar();
 
+        menu(&f, opcao);
+    } while (opcao < 4);
 
     // 🧠 Nível Aventureiro: Adição da Pilha de Reserva
     //
@@ -54,3 +92,86 @@ int main() {
     return 0;
 }
 
+void menu(filaTetris *f, int opcao) {
+    switch (opcao) {
+        case 1:
+            gerarPecas(f);
+            break;
+        
+        case 2:
+            Peca removida;
+            removePeca(f, &removida);
+            printf("Peça removida: %s (ID %d)\n", removida.peca, removida.id);
+            break;
+
+        case 3:
+            visualizar(f);
+            break;
+
+        case 4:
+            printf("\n-----Fechando Programa-----\n");
+            break;
+
+        default:
+            printf("\n-- ERRO: Opcao Invalida --\n");
+            break;
+        }
+}
+
+void inicializaFila(filaTetris *f) {
+    f->inicio = 0;
+    f->fim = 0;
+    f->total= 0;
+}
+
+void inserePeca(filaTetris *f, Peca p) {
+    if(filaCheia(f)) {
+        printf("Lista Cheia, Nao é possivel inserir mais pecas!!");
+        return;
+    }
+    
+    f->itens[f->fim] = p;
+    f->fim = (f->fim + 1) % MAX;
+    f->total++;
+}
+
+void removePeca(filaTetris *f, Peca *p) {
+    if(filaVazia(f)) {
+        printf("Lista Vazia, Nao é possivel remover mais pecas!!");
+        return;
+    }
+    
+    *p = f->itens[f->inicio];
+    f->inicio = (f->inicio + 1) % MAX;
+    f->total--;
+    //para nao deixar a lista faltando, quando excluir uma ja cria outra
+    gerarPecas(f);
+}
+
+void visualizar(filaTetris *f) {
+    if(filaVazia(f)) {
+        printf("Lista Vazia, Nao é possivel visualizar!!");
+        return;
+    }
+    printf("\n----- Fila -----\n");
+    for(int i = 0, idx = f->inicio; i< f->total; i++, idx = (idx + 1) % MAX) {
+        printf("[%s, %d]", f->itens[idx].peca, f->itens[idx].id);
+    }
+}
+
+void gerarPecas(filaTetris *f) {
+    static int contadorID = 1;
+
+    while (!filaCheia(f)) {
+        Peca pecaNova;
+
+        printf("Digite o nome da peça: ");
+        fgets(pecaNova.peca, stng, stdin);
+        removeEnter(pecaNova.peca);
+
+        pecaNova.id = contadorID++;
+        inserePeca(f, pecaNova);
+    }
+
+    printf("Fila completa!\n");
+}
