@@ -4,12 +4,13 @@
 
 #define stng 30
 #define MAX 5
+#define Pilha 3
 
+//fila que define as pecas que o usuraio possui
 typedef struct {
     char peca[stng];
     int id;
 }Peca;
-
 typedef struct {
     Peca itens[MAX];
     int inicio;
@@ -17,11 +18,33 @@ typedef struct {
     int total;
 }filaTetris;
 
+//pilha que define as pecas reservas do usuario possui
+typedef struct {
+    char pecaRes[stng];
+    int id;
+} PecaRes;
+typedef struct {
+    PecaRes itens[Pilha];
+    int topo;
+} PilhaRes;
+
+//Funcoes expecificas da fila que define as pecas que o usuraio possui
 int filaCheia(filaTetris *f) {
     return  f->total == MAX;
 }
 int filaVazia(filaTetris *f) {
     return  f->total == 0;
+}
+
+//Funcoes expecificas da pilha que define as pecas reservas do usuario possui
+void inicializaPilha(PilhaRes *p) {
+    p->topo = -1;
+}
+int pilhaVazia(PilhaRes *p) {
+    return p->topo == -1;
+}
+int pilhaCheia(PilhaRes *p) {
+    return p->topo == Pilha - 1;
 }
 
 void limpar() {
@@ -32,43 +55,44 @@ void removeEnter(char *str) {
     str[strcspn(str, "\n")] = '\0';
 }
 
-void menu(filaTetris *f, int opcao);
+void menu(PilhaRes *p, filaTetris *f, int opcao);
+
+//Funcoes expecificas da fila que define as pecas que o usuraio possui
 void inicializaFila(filaTetris *f);
 void inserePeca(filaTetris *f, Peca p);
-void removePeca(filaTetris *f, Peca *p);
+void removePeca(filaTetris *f);
 void visualizar(filaTetris *f);
 void gerarPecas(filaTetris *f);
 
+//Funcoes expecificas da pilha que define as pecas reservas do usuario possui
+void alterarPeca(PilhaRes *p, filaTetris *f);
+void adcPecaRes(PilhaRes *p, PecaRes Nova);
+void rmvPecaRes(PilhaRes *p, PecaRes *remover);
+void visualizarPecasRes(PilhaRes *p);
 
 int main() {
     int opcao;
     filaTetris f;
+    PilhaRes p;
     inicializaFila(&f);
+    inicializaPilha(&p);
 
     do {
         printf("\n=== MENU ===\n");
-        printf("1 para gerar as pecas\n");
+        printf("1 para gerar as pecas na lista\n");
         printf("2 para alterar uma peca:\n");
         printf("3 para Visualizar as pecas:\n");
-        printf("4 para fechar o programa:\n");
+        printf("4 para adicionar uma peca reserva na fila:\n");
+        printf("5 para visualizar as pecas reservas:\n");
+        printf("6 para remover uma peca reserva:\n");
+        printf("7 para fechar o programa:\n");
 
         printf("\nEscolha:");
         scanf("%d", &opcao);
         limpar();
 
-        menu(&f, opcao);
-    } while (opcao < 4);
-
-    // 🧠 Nível Aventureiro: Adição da Pilha de Reserva
-    //
-    // - Implemente uma pilha linear com capacidade para 3 peças.
-    // - Crie funções como inicializarPilha(), push(), pop(), pilhaCheia(), pilhaVazia().
-    // - Permita enviar uma peça da fila para a pilha (reserva).
-    // - Crie um menu com opção:
-    //      2 - Enviar peça da fila para a reserva (pilha)
-    //      3 - Usar peça da reserva (remover do topo da pilha)
-    // - Exiba a pilha junto com a fila após cada ação com mostrarPilha().
-    // - Mantenha a fila sempre com 5 peças (repondo com gerarPeca()).
+        menu(&p, &f, opcao);
+    } while (opcao < 7);
 
 
     // 🔄 Nível Mestre: Integração Estratégica entre Fila e Pilha
@@ -92,16 +116,14 @@ int main() {
     return 0;
 }
 
-void menu(filaTetris *f, int opcao) {
+void menu(PilhaRes *p, filaTetris *f, int opcao) {
     switch (opcao) {
         case 1:
             gerarPecas(f);
             break;
         
         case 2:
-            Peca removida;
-            removePeca(f, &removida);
-            printf("Peça removida: %s (ID %d)\n", removida.peca, removida.id);
+            removePeca(f);
             break;
 
         case 3:
@@ -109,6 +131,19 @@ void menu(filaTetris *f, int opcao) {
             break;
 
         case 4:
+            alterarPeca(p, f);
+            break;
+
+        case 5:
+            visualizarPecasRes(p);
+            break;
+
+        case 6:
+            PecaRes remover;
+            rmvPecaRes(p, &remover);
+            break;
+
+        case 7:
             printf("\n-----Fechando Programa-----\n");
             break;
 
@@ -123,10 +158,9 @@ void inicializaFila(filaTetris *f) {
     f->fim = 0;
     f->total= 0;
 }
-
 void inserePeca(filaTetris *f, Peca p) {
     if(filaCheia(f)) {
-        printf("Lista Cheia, Nao é possivel inserir mais pecas!!");
+        printf("\nLista Cheia, Nao é possivel inserir mais pecas\n!!");
         return;
     }
     
@@ -134,23 +168,23 @@ void inserePeca(filaTetris *f, Peca p) {
     f->fim = (f->fim + 1) % MAX;
     f->total++;
 }
-
-void removePeca(filaTetris *f, Peca *p) {
+void removePeca(filaTetris *f) {
+    Peca removida;
     if(filaVazia(f)) {
-        printf("Lista Vazia, Nao é possivel remover mais pecas!!");
+        printf("\nLista Vazia, Nao é possivel remover mais pecas\n!!");
         return;
     }
     
-    *p = f->itens[f->inicio];
+    removida  = f->itens[f->inicio];
     f->inicio = (f->inicio + 1) % MAX;
     f->total--;
-    //para nao deixar a lista faltando, quando excluir uma ja cria outra
+    printf("Peça removida: %s (ID %d)\n", removida.peca, removida.id);
+    //para nao deixar a lista faltando, quando excluir uma em sequencia cria outra
     gerarPecas(f);
 }
-
 void visualizar(filaTetris *f) {
     if(filaVazia(f)) {
-        printf("Lista Vazia, Nao é possivel visualizar!!");
+        printf("\nLista Vazia, Nao é possivel visualizar!!\n");
         return;
     }
     printf("\n----- Fila -----\n");
@@ -158,7 +192,6 @@ void visualizar(filaTetris *f) {
         printf("[%s, %d]", f->itens[idx].peca, f->itens[idx].id);
     }
 }
-
 void gerarPecas(filaTetris *f) {
     static int contadorID = 1;
 
@@ -174,4 +207,49 @@ void gerarPecas(filaTetris *f) {
     }
 
     printf("Fila completa!\n");
+}
+
+void adcPecaRes(PilhaRes *p, PecaRes Nova) {
+    if (pilhaCheia(p)) {
+        printf("\nPilha cheia, nao é possivel adici onar pecas reservas!!\n");
+        return;
+    }
+    p->topo++;
+    p->itens[p->topo] = Nova;
+}
+void alterarPeca(PilhaRes *p, filaTetris *f) {
+    PecaRes Alterar;
+    static int contadorIdPilha = 1;
+    if(filaVazia(f)) {
+        printf("\nLista Vazia, Nao é possivel remover mais pecas!!\n");
+        return;
+    }
+    printf("\nIra guardar a primeira peca\n");
+    strcpy(Alterar.pecaRes, f->itens[f->inicio].peca);
+
+    //Defini o id da pecaRes e incrementa
+    Alterar.id = contadorIdPilha++;
+    adcPecaRes(p, Alterar);
+    removePeca(f);
+}
+void rmvPecaRes(PilhaRes *p, PecaRes *remover) {
+    if(pilhaVazia(p)) {
+        printf("\nPilha vazia, nao existe pecas reservas para remover!!\n");
+        return;
+    }
+    *remover = p->itens[p->topo];
+    printf("\nPeca Utilizada:\n");
+    printf("[%d, %s]\n", remover->id, remover->pecaRes);
+    p->topo--;
+}
+void visualizarPecasRes(PilhaRes *p) {
+    if(pilhaVazia(p)){
+        printf("\nPilha vazia, nao existe pecas reservas para visualizar!!\n");
+        return;
+    }
+    printf("\nPilha PECAS RESERVAS(topo -> base):\n");
+
+    for(int i = p->topo; i >= 0; i--) {
+        printf("[%d, %s]\n", p->itens[i].id, p->itens[i].pecaRes);
+    }
 }
